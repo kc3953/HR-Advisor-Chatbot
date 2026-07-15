@@ -65,6 +65,56 @@
         }
         .nav-link:hover { background: rgba(255,255,255,0.25); }
 
+        .filter-bar {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-field label {
+            display: block;
+            font-size: 0.72rem;
+            color: #64748b;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+        }
+
+        .filter-field select, .filter-field input {
+            font-size: 0.85rem;
+            padding: 0.45rem 0.6rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .filter-actions { display: flex; gap: 0.5rem; margin-left: auto; }
+
+        button.filter-btn, button#askBtn {
+            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 0.55rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.filter-btn.secondary {
+            background: #e8f0f7;
+            color: #1a3c5e;
+        }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .grid {
             width: 100%;
             max-width: 900px;
@@ -101,9 +151,47 @@
 
         canvas { max-height: 280px; }
 
+        .ask-section {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-top: 1.25rem;
+        }
+
+        .ask-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+
+        .chip {
+            background: white;
+            border: 1px solid #2d6a9f;
+            color: #2d6a9f;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .chip:hover { background: #2d6a9f; color: white; }
+
+        .ask-input-row { display: flex; gap: 0.75rem; }
+
+        #askInput {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        #askChart { display: none; margin-top: 1rem; }
+
         @media (max-width: 700px) {
             .grid { grid-template-columns: 1fr; }
             .card.full { grid-column: span 1; }
+            .filter-actions { margin-left: 0; }
         }
     </style>
 </head>
@@ -118,6 +206,29 @@
             </div>
         </div>
         <a class="nav-link" href="/static/index.html">💬 Back to Chat</a>
+    </div>
+
+    <div class="filter-bar">
+        <div class="filter-field">
+            <label>Department</label>
+            <select id="filterDepartment"><option value="">All</option></select>
+        </div>
+        <div class="filter-field">
+            <label>Recruitment Source</label>
+            <select id="filterSource"><option value="">All</option></select>
+        </div>
+        <div class="filter-field">
+            <label>Hired From</label>
+            <input type="date" id="filterFrom">
+        </div>
+        <div class="filter-field">
+            <label>Hired To</label>
+            <input type="date" id="filterTo">
+        </div>
+        <div class="filter-actions">
+            <button class="filter-btn secondary" id="resetFiltersBtn" type="button">Reset</button>
+            <button class="filter-btn" id="applyFiltersBtn" type="button">Apply Filters</button>
+        </div>
     </div>
 
     <div class="grid">
@@ -140,13 +251,86 @@
         </div>
     </div>
 
+    <div class="ask-section">
+        <h2>Ask a Question</h2>
+        <div class="ask-chips">
+            <span class="chip" onclick="fillAsk('Which recruitment source has the most hires?')">Top recruitment source</span>
+            <span class="chip" onclick="fillAsk('What is the headcount trend for IT/IS?')">IT/IS headcount trend</span>
+            <span class="chip" onclick="fillAsk('What is the average salary by department?')">Avg salary by dept</span>
+        </div>
+        <div class="ask-input-row">
+            <input type="text" id="askInput" placeholder="e.g. What is the average salary by department?">
+            <button id="askBtn">Ask</button>
+        </div>
+        <canvas id="askChart"></canvas>
+        <div class="insight" id="askNarration"></div>
+    </div>
+
     <script>
         const palette = ['#2d6a9f', '#4ade80', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+        const charts = {}; // canvasId -> Chart instance, so filters/ask can re-render safely
+
+        function renderChart(canvasId, config) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(document.getElementById(canvasId), config);
+        }
+
+        function currentFilters() {
+            const params = new URLSearchParams();
+            const department = document.getElementById('filterDepartment').value;
+            const source = document.getElementById('filterSource').value;
+            const from = document.getElementById('filterFrom').value;
+            const to = document.getElementById('filterTo').value;
+            if (department) params.set('department', department);
+            if (source) params.set('recruitment_source', source);
+            if (from) params.set('date_from', from);
+            if (to) params.set('date_to', to);
+            const qs = params.toString();
+            return qs ? `?${qs}` : '';
+        }
+
+        async function loadFilterOptions() {
+            const res = await fetch('/api/dashboard/filter-options');
+            const data = await res.json();
+
+            const depSelect = document.getElementById('filterDepartment');
+            data.departments.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                depSelect.appendChild(opt);
+            });
+
+            const sourceSelect = document.getElementById('filterSource');
+            data.recruitment_sources.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                sourceSelect.appendChild(opt);
+            });
+
+            if (data.date_of_hire_min) {
+                document.getElementById('filterFrom').min = data.date_of_hire_min;
+                document.getElementById('filterTo').min = data.date_of_hire_min;
+            }
+            if (data.date_of_hire_max) {
+                document.getElementById('filterFrom').max = data.date_of_hire_max;
+                document.getElementById('filterTo').max = data.date_of_hire_max;
+            }
+        }
 
         async function loadHeadcount() {
-            const res = await fetch('/api/dashboard/headcount');
+            const res = await fetch('/api/dashboard/headcount' + currentFilters());
             const data = await res.json();
-            new Chart(document.getElementById('headcountChart'), {
+            const insightEl = document.getElementById('headcountInsight');
+
+            if (!data.headcount.length) {
+                renderChart('headcountChart', { type: 'line', data: { labels: [], datasets: [] } });
+                insightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+                return;
+            }
+
+            renderChart('headcountChart', {
                 type: 'line',
                 data: {
                     labels: data.labels,
@@ -166,14 +350,22 @@
             const first = data.headcount[0];
             const last = data.headcount[data.headcount.length - 1];
             const direction = last >= first ? 'grew' : 'declined';
-            document.getElementById('headcountInsight').innerHTML =
+            insightEl.innerHTML =
                 `<strong>Insight:</strong> Headcount ${direction} from ${first} to ${last} employees over the observed period.`;
         }
 
         async function loadAttrition() {
-            const res = await fetch('/api/dashboard/attrition');
+            const res = await fetch('/api/dashboard/attrition' + currentFilters());
             const data = await res.json();
-            new Chart(document.getElementById('attritionChart'), {
+            const insightEl = document.getElementById('attritionInsight');
+
+            if (!data.departments.length) {
+                renderChart('attritionChart', { type: 'bar', data: { labels: [], datasets: [] } });
+                insightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+                return;
+            }
+
+            renderChart('attritionChart', {
                 type: 'bar',
                 data: {
                     labels: data.departments.map(d => d.department),
@@ -187,14 +379,22 @@
             });
 
             const worst = data.departments[0];
-            document.getElementById('attritionInsight').innerHTML =
+            insightEl.innerHTML =
                 `<strong>Insight:</strong> ${worst.department} has the highest attrition rate at ${worst.attrition_rate}%.`;
         }
 
         async function loadSource() {
-            const res = await fetch('/api/dashboard/recruitment-source');
+            const res = await fetch('/api/dashboard/recruitment-source' + currentFilters());
             const data = await res.json();
-            new Chart(document.getElementById('sourceChart'), {
+            const insightEl = document.getElementById('sourceInsight');
+
+            if (!data.sources.length) {
+                renderChart('sourceChart', { type: 'bar', data: { labels: [], datasets: [] } });
+                insightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+                return;
+            }
+
+            renderChart('sourceChart', {
                 type: 'bar',
                 data: {
                     labels: data.sources.map(s => s.recruitment_source),
@@ -208,13 +408,82 @@
             });
 
             const top = data.sources[0];
-            document.getElementById('sourceInsight').innerHTML =
+            insightEl.innerHTML =
                 `<strong>Insight:</strong> ${top.recruitment_source} is the top hiring source, with ${top.hires} hires.`;
         }
 
-        loadHeadcount();
-        loadAttrition();
-        loadSource();
+        function loadAllCharts() {
+            loadHeadcount();
+            loadAttrition();
+            loadSource();
+        }
+
+        function fillAsk(text) {
+            document.getElementById('askInput').value = text;
+            document.getElementById('askInput').focus();
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('askInput').value.trim();
+            if (!question) return;
+
+            const btn = document.getElementById('askBtn');
+            const narrationEl = document.getElementById('askNarration');
+            const canvas = document.getElementById('askChart');
+            btn.disabled = true;
+            canvas.style.display = 'none';
+            narrationEl.textContent = 'Thinking...';
+
+            try {
+                const res = await fetch('/api/dashboard/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+
+                if (data.chart_type === 'text' || !data.labels) {
+                    narrationEl.textContent = data.narration || 'No answer available.';
+                } else {
+                    canvas.style.display = 'block';
+                    renderChart('askChart', {
+                        type: data.chart_type,
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: data.title || question,
+                                data: data.values,
+                                backgroundColor: palette,
+                                borderColor: '#2d6a9f',
+                                fill: data.chart_type === 'line',
+                            }]
+                        },
+                        options: { plugins: { legend: { display: data.chart_type === 'pie' } } }
+                    });
+                    narrationEl.innerHTML = `<strong>${data.title || ''}:</strong> ${data.narration || ''}`;
+                }
+            } catch (e) {
+                narrationEl.textContent = 'Error connecting to the server. Please try again.';
+            }
+
+            btn.disabled = false;
+        }
+
+        document.getElementById('applyFiltersBtn').addEventListener('click', loadAllCharts);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('filterDepartment').value = '';
+            document.getElementById('filterSource').value = '';
+            document.getElementById('filterFrom').value = '';
+            document.getElementById('filterTo').value = '';
+            loadAllCharts();
+        });
+        document.getElementById('askBtn').addEventListener('click', askQuestion);
+        document.getElementById('askInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') askQuestion();
+        });
+
+        loadFilterOptions();
+        loadAllCharts();
     </script>
 </body>
 </html>

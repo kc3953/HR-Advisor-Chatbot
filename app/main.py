@@ -1,6 +1,6 @@
 import os
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -264,16 +264,74 @@ async def root():
     return {"message": "Chatbot API is running. Go to /static/index.html to chat."}
 
 
-# 5. Dashboard API — pure SQL against the HR dataset, no LLM calls, so the
-# dashboard loads fast and independent of Vertex AI availability.
+# 5. Dashboard API — pure SQL against the HR dataset, no LLM calls (except
+# /api/dashboard/ask), so the core dashboard loads fast and independent of
+# Vertex AI availability.
+
+def _filter_clause(
+    department: str | None,
+    recruitment_source: str | None,
+    date_from: str | None,
+    date_to: str | None,
+) -> tuple[str, list]:
+    """Builds a parameterized WHERE fragment (e.g. " AND department = ?") shared
+    by all filterable dashboard endpoints. Always uses placeholders, never string
+    interpolation, even though values currently only come from UI dropdowns."""
+    clauses = []
+    params: list = []
+    if department:
+        clauses.append("department = ?")
+        params.append(department)
+    if recruitment_source:
+        clauses.append("recruitment_source = ?")
+        params.append(recruitment_source)
+    if date_from:
+        clauses.append("date_of_hire >= ?")
+        params.append(date_from)
+    if date_to:
+        clauses.append("date_of_hire <= ?")
+        params.append(date_to)
+    clause = (" AND " + " AND ".join(clauses)) if clauses else ""
+    return clause, params
+
+
+@app.get("/api/dashboard/filter-options")
+async def dashboard_filter_options():
+    """Distinct filter values and hire-date bounds, to drive the filter UI dynamically."""
+    conn = db.get_connection()
+    departments = [r[0] for r in conn.execute("SELECT DISTINCT department FROM employees ORDER BY department")]
+    sources = [r[0] for r in conn.execute("SELECT DISTINCT recruitment_source FROM employees ORDER BY recruitment_source")]
+    bounds = conn.execute("SELECT MIN(date_of_hire), MAX(date_of_hire) FROM employees").fetchone()
+    return {
+        "departments": departments,
+        "recruitment_sources": sources,
+        "date_of_hire_min": bounds[0],
+        "date_of_hire_max": bounds[1],
+    }
+
 
 @app.get("/api/dashboard/headcount")
-async def dashboard_headcount():
+async def dashboard_headcount(
+    department: str | None = Query(None),
+    recruitment_source: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+):
     """Active headcount at the end of each month, from real hire/termination dates."""
     conn = db.get_connection()
+    where_clause, params = _filter_clause(department, recruitment_source, date_from, date_to)
+
     bounds = conn.execute(
-        "SELECT MIN(date_of_hire), COALESCE(MAX(date_of_termination), MAX(date_of_hire)) FROM employees"
+        f"""
+        SELECT MIN(date_of_hire), COALESCE(MAX(date_of_termination), MAX(date_of_hire))
+        FROM employees WHERE 1=1 {where_clause}
+        """,
+        params,
     ).fetchone()
+
+    if not bounds[0]:
+        return {"labels": [], "headcount": []}
+
     start, end = bounds[0][:7], bounds[1][:7]  # 'YYYY-MM'
 
     months = []
@@ -290,12 +348,13 @@ async def dashboard_headcount():
     for month in months:
         month_end = f"{month}-28"  # good enough granularity for a monthly trend
         row = conn.execute(
-            """
+            f"""
             SELECT COUNT(*) FROM employees
             WHERE date_of_hire <= ?
               AND (date_of_termination IS NULL OR date_of_termination > ?)
+              {where_clause}
             """,
-            (month_end, month_end),
+            [month_end, month_end] + params,
         ).fetchone()
         counts.append(row[0])
 
@@ -303,33 +362,61 @@ async def dashboard_headcount():
 
 
 @app.get("/api/dashboard/attrition")
-async def dashboard_attrition():
+async def dashboard_attrition(
+    department: str | None = Query(None),
+    recruitment_source: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+):
     """Attrition rate by department: terminated employees / total employees ever in that department."""
     conn = db.get_connection()
+    where_clause, params = _filter_clause(department, recruitment_source, date_from, date_to)
     rows = conn.execute(
-        """
+        f"""
         SELECT department,
                SUM(termd) AS terminated,
                COUNT(*) AS total,
                ROUND(100.0 * SUM(termd) / COUNT(*), 1) AS attrition_rate
         FROM employees
+        WHERE 1=1 {where_clause}
         GROUP BY department
         ORDER BY attrition_rate DESC
-        """
+        """,
+        params,
     ).fetchall()
     return {"departments": [dict(r) for r in rows]}
 
 
 @app.get("/api/dashboard/recruitment-source")
-async def dashboard_recruitment_source():
+async def dashboard_recruitment_source(
+    department: str | None = Query(None),
+    recruitment_source: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+):
     """Hire counts by recruitment source (real-data stand-in for a hiring funnel)."""
     conn = db.get_connection()
+    where_clause, params = _filter_clause(department, recruitment_source, date_from, date_to)
     rows = conn.execute(
-        """
+        f"""
         SELECT recruitment_source, COUNT(*) AS hires
         FROM employees
+        WHERE 1=1 {where_clause}
         GROUP BY recruitment_source
         ORDER BY hires DESC
-        """
+        """,
+        params,
     ).fetchall()
     return {"sources": [dict(r) for r in rows]}
+
+
+class DashboardAskRequest(BaseModel):
+    question: str
+
+
+@app.post("/api/dashboard/ask")
+async def dashboard_ask(request: DashboardAskRequest):
+    """Free-text question -> a chart, generated live via the text-to-SQL agent."""
+    conn = db.get_connection()
+    result = sql_agent.handle_dashboard_question(client, conn, request.question)
+    return result

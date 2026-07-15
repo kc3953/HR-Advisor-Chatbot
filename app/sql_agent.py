@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import sqlite3
@@ -50,7 +51,29 @@ concise, bulleted answer with bold headers, in this shape:
 Keep it short. Do not mention SQL or the database in your answer — speak as an HR analyst presenting findings.
 """
 
+CHART_SYSTEM_INSTRUCTION = """You are a data visualization assistant. You are given a user's question, the SQL
+that was run, and the resulting rows (a list of JSON objects, all sharing the same keys). Decide how to best
+visualize this result and write a short narration.
+
+Output ONLY a single JSON object wrapped in a ```json code fence, with exactly these keys:
+{
+  "chart_type": "bar" | "line" | "pie",
+  "title": "short chart title",
+  "x_field": "<one of the row keys, used as labels/x-axis>",
+  "y_field": "<one of the row keys, used as the numeric value/y-axis>",
+  "narration": "one or two sentence insight about the result, written for an HR analyst"
+}
+
+Rules:
+- x_field and y_field MUST be exact key names taken from the given rows.
+- Use "line" only if x_field looks like a date or time period. Use "pie" only if there are 6 or fewer rows.
+  Otherwise use "bar".
+- Do not include any text outside the JSON code fence.
+"""
+
 SQL_FENCE_RE = re.compile(r"```sql\s*(.*?)```", re.IGNORECASE | re.DOTALL)
+JSON_FENCE_RE = re.compile(r"```json\s*(.*?)```", re.IGNORECASE | re.DOTALL)
+ALLOWED_CHART_TYPES = {"bar", "line", "pie"}
 FORBIDDEN_KEYWORDS = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|ATTACH|DETACH|PRAGMA|CREATE|REPLACE|VACUUM)\b",
     re.IGNORECASE,
@@ -131,3 +154,61 @@ def handle_data_question(client, conn: sqlite3.Connection, question: str) -> str
     except Exception:
         logger.exception("SQL agent failed for question=%r", question)
         return FALLBACK_MESSAGE
+
+
+def describe_chart(client, question: str, sql: str, rows: list[dict]) -> dict | None:
+    prompt = f"User question: {question}\nSQL run: {sql}\nResult rows: {json.dumps(rows)}"
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        config=types.GenerateContentConfig(
+            system_instruction=CHART_SYSTEM_INSTRUCTION,
+            temperature=0,
+        ),
+        contents=prompt,
+    )
+    match = JSON_FENCE_RE.search(response.text or "")
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1).strip())
+    except json.JSONDecodeError:
+        return None
+
+
+def handle_dashboard_question(client, conn: sqlite3.Connection, question: str) -> dict:
+    """Free-text question -> chart spec, for the dashboard's ask-a-question box.
+    Always returns a dict with at least {"chart_type", "narration"}; falls back to
+    chart_type="text" (no chart) on any unsupported/unsafe/invalid outcome."""
+    text_fallback = {"chart_type": "text", "narration": FALLBACK_MESSAGE}
+    try:
+        sql = generate_sql(client, question)
+        if not sql or not is_safe_select(sql) or "unsupported" in sql.lower():
+            logger.info("Dashboard ask: unsupported or unsafe SQL for question=%r sql=%r", question, sql)
+            return text_fallback
+
+        rows = run_query(conn, sql)
+        if not rows:
+            return text_fallback
+
+        chart = describe_chart(client, question, sql, rows)
+        if not chart:
+            logger.info("Dashboard ask: no chart spec returned for question=%r", question)
+            return text_fallback
+
+        chart_type = chart.get("chart_type")
+        x_field = chart.get("x_field")
+        y_field = chart.get("y_field")
+        if chart_type not in ALLOWED_CHART_TYPES or x_field not in rows[0] or y_field not in rows[0]:
+            logger.info("Dashboard ask: invalid chart spec %r for question=%r", chart, question)
+            return text_fallback
+
+        return {
+            "chart_type": chart_type,
+            "title": chart.get("title") or question,
+            "labels": [row[x_field] for row in rows],
+            "values": [row[y_field] for row in rows],
+            "narration": chart.get("narration", ""),
+        }
+    except Exception:
+        logger.exception("Dashboard ask failed for question=%r", question)
+        return text_fallback

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>People Analytics Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 900px;
+            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            font-size: 2.2rem;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.3px; }
+        .header-text p { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.15);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.25); }
+
+        .grid {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            grid-column: span 1;
+        }
+
+        .card.full { grid-column: span 2; }
+
+        .card h2 {
+            font-size: 0.95rem;
+            color: #1a3c5e;
+            margin-bottom: 0.75rem;
+        }
+
+        .insight {
+            font-size: 0.8rem;
+            color: #475569;
+            margin-top: 0.75rem;
+            padding-top: 0.6rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .insight strong { color: #1a3c5e; }
+
+        canvas { max-height: 280px; }
+
+        @media (max-width: 700px) {
+            .grid { grid-template-columns: 1fr; }
+            .card.full { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon">📊</div>
+            <div class="header-text">
+                <h1>People Analytics Dashboard</h1>
+                <p>Headcount, attrition &amp; hiring source — real HR dataset</p>
+            </div>
+        </div>
+        <a class="nav-link" href="/static/index.html">💬 Back to Chat</a>
+    </div>
+
+    <div class="grid">
+        <div class="card full">
+            <h2>Headcount Over Time</h2>
+            <canvas id="headcountChart"></canvas>
+            <div class="insight" id="headcountInsight"></div>
+        </div>
+
+        <div class="card">
+            <h2>Attrition Rate by Department</h2>
+            <canvas id="attritionChart"></canvas>
+            <div class="insight" id="attritionInsight"></div>
+        </div>
+
+        <div class="card">
+            <h2>Hires by Recruitment Source</h2>
+            <canvas id="sourceChart"></canvas>
+            <div class="insight" id="sourceInsight"></div>
+        </div>
+    </div>
+
+    <script>
+        const palette = ['#2d6a9f', '#4ade80', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+        async function loadHeadcount() {
+            const res = await fetch('/api/dashboard/headcount');
+            const data = await res.json();
+            new Chart(document.getElementById('headcountChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Active Headcount',
+                        data: data.headcount,
+                        borderColor: '#2d6a9f',
+                        backgroundColor: 'rgba(45,106,159,0.1)',
+                        fill: true,
+                        tension: 0.25,
+                        pointRadius: 0,
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+
+            const first = data.headcount[0];
+            const last = data.headcount[data.headcount.length - 1];
+            const direction = last >= first ? 'grew' : 'declined';
+            document.getElementById('headcountInsight').innerHTML =
+                `<strong>Insight:</strong> Headcount ${direction} from ${first} to ${last} employees over the observed period.`;
+        }
+
+        async function loadAttrition() {
+            const res = await fetch('/api/dashboard/attrition');
+            const data = await res.json();
+            new Chart(document.getElementById('attritionChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.departments.map(d => d.department),
+                    datasets: [{
+                        label: 'Attrition Rate (%)',
+                        data: data.departments.map(d => d.attrition_rate),
+                        backgroundColor: palette,
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+
+            const worst = data.departments[0];
+            document.getElementById('attritionInsight').innerHTML =
+                `<strong>Insight:</strong> ${worst.department} has the highest attrition rate at ${worst.attrition_rate}%.`;
+        }
+
+        async function loadSource() {
+            const res = await fetch('/api/dashboard/recruitment-source');
+            const data = await res.json();
+            new Chart(document.getElementById('sourceChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.sources.map(s => s.recruitment_source),
+                    datasets: [{
+                        label: 'Hires',
+                        data: data.sources.map(s => s.hires),
+                        backgroundColor: palette,
+                    }]
+                },
+                options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+            });
+
+            const top = data.sources[0];
+            document.getElementById('sourceInsight').innerHTML =
+                `<strong>Insight:</strong> ${top.recruitment_source} is the top hiring source, with ${top.hires} hires.`;
+        }
+
+        loadHeadcount();
+        loadAttrition();
+        loadSource();
+    </script>
+</body>
+</html>

@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from google import genai
 from google.genai import types
 
+from app import db, sql_agent
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -146,6 +148,27 @@ OUT_OF_SCOPE_KEYWORDS = [
     "write code", "debug", "tcp/ip", "machine learning model",
 ]
 
+# Questions matching these keywords are routed to the text-to-SQL agent instead
+# of the conceptual RISEN prompt, so they get answered with real computed numbers
+# from the HR dataset rather than a generic explanation.
+DATA_QUERY_KEYWORDS = [
+    "attrition rate", "attrition by", "headcount", "how many employees",
+    "how many people", "turnover", "hiring funnel", "recruitment source",
+    "hires by", "hired in", "time to fill", "tenure", "average salary",
+    "average tenure", "engagement score", "satisfaction score",
+    "performance score", "by department", "trend over time",
+]
+
+# Even if a message matches a DATA_QUERY_KEYWORDS term, these markers indicate
+# the user is asking for a definition/explanation (e.g. "what IS attrition rate
+# and how is it CALCULATED"), not a computed value — keep those on the
+# conceptual RISEN path instead of routing to the SQL agent.
+CONCEPTUAL_MARKERS = [
+    "how is it calculated", "how is that calculated", "how are they calculated",
+    "how does", "difference between", "explain", "define", "definition of",
+    "what does it mean", "concept of",
+]
+
 DISTRESS_FALLBACK = """I'm really sorry to hear you're going through a difficult time. What you're feeling matters, and you deserve support.
 
 Please reach out to the following resources right away:
@@ -198,7 +221,23 @@ async def health_check():
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     logger.info(f"Received chat request: {request.message[:100]}...")
+    msg_lower = request.message.lower()
     try:
+        # Route quantitative questions to the text-to-SQL agent, which answers
+        # with real numbers computed from the HR dataset. Safety and out-of-scope
+        # signals still take priority and fall through to the standard path below,
+        # which already handles them (and is backed up by backstop_classifier).
+        is_distress = any(kw in msg_lower for kw in DISTRESS_KEYWORDS)
+        is_out_of_scope = any(kw in msg_lower for kw in OUT_OF_SCOPE_KEYWORDS)
+        is_data_query = any(kw in msg_lower for kw in DATA_QUERY_KEYWORDS)
+        is_conceptual = any(kw in msg_lower for kw in CONCEPTUAL_MARKERS)
+
+        if is_data_query and not is_distress and not is_out_of_scope and not is_conceptual:
+            logger.info("Routing to SQL agent")
+            conn = db.get_connection()
+            data_response = sql_agent.handle_data_question(client, conn, request.message)
+            return {"response": data_response}
+
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
@@ -223,3 +262,74 @@ async def chat_endpoint(request: ChatRequest):
 @app.get("/")
 async def root():
     return {"message": "Chatbot API is running. Go to /static/index.html to chat."}
+
+
+# 5. Dashboard API — pure SQL against the HR dataset, no LLM calls, so the
+# dashboard loads fast and independent of Vertex AI availability.
+
+@app.get("/api/dashboard/headcount")
+async def dashboard_headcount():
+    """Active headcount at the end of each month, from real hire/termination dates."""
+    conn = db.get_connection()
+    bounds = conn.execute(
+        "SELECT MIN(date_of_hire), COALESCE(MAX(date_of_termination), MAX(date_of_hire)) FROM employees"
+    ).fetchone()
+    start, end = bounds[0][:7], bounds[1][:7]  # 'YYYY-MM'
+
+    months = []
+    y, m = (int(x) for x in start.split("-"))
+    end_y, end_m = (int(x) for x in end.split("-"))
+    while (y, m) <= (end_y, end_m):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+
+    counts = []
+    for month in months:
+        month_end = f"{month}-28"  # good enough granularity for a monthly trend
+        row = conn.execute(
+            """
+            SELECT COUNT(*) FROM employees
+            WHERE date_of_hire <= ?
+              AND (date_of_termination IS NULL OR date_of_termination > ?)
+            """,
+            (month_end, month_end),
+        ).fetchone()
+        counts.append(row[0])
+
+    return {"labels": months, "headcount": counts}
+
+
+@app.get("/api/dashboard/attrition")
+async def dashboard_attrition():
+    """Attrition rate by department: terminated employees / total employees ever in that department."""
+    conn = db.get_connection()
+    rows = conn.execute(
+        """
+        SELECT department,
+               SUM(termd) AS terminated,
+               COUNT(*) AS total,
+               ROUND(100.0 * SUM(termd) / COUNT(*), 1) AS attrition_rate
+        FROM employees
+        GROUP BY department
+        ORDER BY attrition_rate DESC
+        """
+    ).fetchall()
+    return {"departments": [dict(r) for r in rows]}
+
+
+@app.get("/api/dashboard/recruitment-source")
+async def dashboard_recruitment_source():
+    """Hire counts by recruitment source (real-data stand-in for a hiring funnel)."""
+    conn = db.get_connection()
+    rows = conn.execute(
+        """
+        SELECT recruitment_source, COUNT(*) AS hires
+        FROM employees
+        GROUP BY recruitment_source
+        ORDER BY hires DESC
+        """
+    ).fetchall()
+    return {"sources": [dict(r) for r in rows]}

@@ -281,12 +281,15 @@
 <body>
 
     <!-- Header -->
-    <div class="header">
-        <div class="header-icon">👥</div>
-        <div class="header-text">
-            <h1>HR Advisor &mdash; People Analytics Assistant</h1>
-            <p><span class="status-dot"></span>Online &bull; Powered by Gemini on Vertex AI</p>
+    <div class="header" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="header-icon">👥</div>
+            <div class="header-text">
+                <h1>HR Advisor &mdash; People Analytics Assistant</h1>
+                <p><span class="status-dot"></span>Online &bull; Powered by Gemini on Vertex AI</p>
+            </div>
         </div>
+        <a href="/static/dashboard.html" style="color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; background: rgba(255,255,255,0.15); padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap;">📊 Dashboard</a>
     </div>
 
     <!-- Suggestion chips -->
@@ -296,6 +299,8 @@
         <span class="chip" onclick="fillMessage('What metrics measure employee engagement?')">Engagement metrics</span>
         <span class="chip" onclick="fillMessage('What are standard PTO policies?')">PTO policies</span>
         <span class="chip" onclick="fillMessage('How is workforce planning done?')">Workforce planning</span>
+        <span class="chip" onclick="fillMessage('What is the attrition rate by department?')">Attrition by dept (live data)</span>
+        <span class="chip" onclick="fillMessage('What is our current headcount?')">Current headcount (live data)</span>
     </div>
 
     <!-- Chat window -->

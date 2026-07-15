@@ -1,17 +1,21 @@
 # HR Advisor — People Analytics Chatbot
 
-**Team Member**: Chung-Yeh Yang(cy2816), Kuan-Ting Chen(kc3953)
-
-A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
+A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
 [**Live URL Link**](https://hr-advisor-ixylabcy6a-uc.a.run.app/static/index.html)
 
 ## What It Does
 
-- Answers questions about HR policies, employee benefits, performance management, talent acquisition, workforce planning, and people analytics concepts
+- Answers conceptual questions about HR policies, employee benefits, performance management, talent acquisition, workforce planning, and people analytics concepts
+- **Answers quantitative questions with real computed numbers**: a text-to-SQL agent generates and safely executes SQL against a real HR dataset (e.g. "What's the attrition rate by department?"), then narrates the result as an answer + insight + recommendation
+- **People Analytics Dashboard** (`/static/dashboard.html`): headcount trend, attrition rate by department, and hires by recruitment source, computed live from the dataset
 - Refuses out-of-scope topics (technology/coding, lifestyle, financial/legal advice) with a clear explanation
 - Detects distressed users and immediately provides crisis resources (988, Crisis Text Line, EAP)
 - Uses a Python backstop classifier to catch cases where the LLM misses scope or safety rules
+
+## Data Source
+
+The SQL agent and dashboard run on **[HRDataset_v14](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set)** by Rich Huebner (CC0 Public Domain). It's a widely-used reference dataset of a fictitious company's HR records (311 employees) with real hire/termination dates, department, performance, and recruitment-source fields — no real individuals' data is used.
 
 ## Tech Stack
 
@@ -19,7 +23,8 @@ A domain-specific chatbot that answers HR and people analytics questions, enforc
 |---|---|
 | LLM | Gemini 2.5 Flash via Vertex AI |
 | Backend | FastAPI (Python 3.12) |
-| Frontend | Vanilla HTML/CSS/JS |
+| Data | SQLite (in-memory), loaded from a real HR dataset |
+| Frontend | Vanilla HTML/CSS/JS, Chart.js (dashboard) |
 | Deployment | Google Cloud Run |
 | Package manager | uv |
 
@@ -30,9 +35,14 @@ A domain-specific chatbot that answers HR and people analytics questions, enforc
 ```
 domain-chatbot/
 ├── app/
-│   ├── main.py          # FastAPI app, system prompt, backstop classifier
+│   ├── main.py           # FastAPI app, system prompt, backstop classifier, dashboard API
+│   ├── db.py             # Loads HRDataset_v14.csv into an in-memory SQLite DB
+│   ├── sql_agent.py       # Text-to-SQL generation, validation, execution, narration
+│   ├── data/
+│   │   └── HRDataset_v14.csv
 │   └── static/
-│       └── index.html   # Chat UI
+│       ├── index.html    # Chat UI
+│       └── dashboard.html # People Analytics dashboard (Chart.js)
 ├── eval.py              # Evaluation harness (deterministic + MaaJ)
 ├── eval_dataset.json    # 40 test cases across 4 categories
 ├── Dockerfile

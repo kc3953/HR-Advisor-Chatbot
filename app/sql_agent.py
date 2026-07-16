@@ -10,24 +10,34 @@ logger = logging.getLogger(__name__)
 SCHEMA_DESCRIPTION = """
 Table: employees (one row per employee, from a real HR dataset of a company)
 Columns:
-  employee_id          INTEGER  unique employee id
-  employee_name        TEXT
-  department            TEXT     e.g. 'Production', 'IT/IS', 'Software Engineering', 'Admin Offices', 'Sales', 'Executive Office'
-  position              TEXT     job title
-  state                 TEXT     US state code
-  date_of_hire          TEXT     ISO date 'YYYY-MM-DD'
-  date_of_termination   TEXT     ISO date 'YYYY-MM-DD', or NULL if still employed
-  termd                 INTEGER  1 if terminated, 0 if still active
-  term_reason           TEXT
-  employment_status     TEXT     e.g. 'Active', 'Voluntarily Terminated', 'Terminated for Cause'
-  manager_name          TEXT
-  recruitment_source    TEXT     e.g. 'LinkedIn', 'Indeed', 'Referral', 'Diversity Job Fair'
-  performance_score     TEXT     e.g. 'Exceeds', 'Fully Meets', 'Needs Improvement', 'PIP'
-  engagement_survey     REAL     0-5 engagement score
-  emp_satisfaction      INTEGER  0-5 satisfaction score
-  salary                INTEGER  annual salary in USD
-  days_late_last_30     INTEGER
-  absences              INTEGER
+  employee_id            INTEGER  unique employee id
+  employee_name          TEXT     stored as 'Last, First' (e.g. 'Dunn, Amy')
+  employee_display_name  TEXT     the same person's name as 'First Last' (e.g. 'Amy Dunn') --
+                                   use this column, not employee_name, when joining against manager_name
+  department              TEXT     e.g. 'Production', 'IT/IS', 'Software Engineering', 'Admin Offices', 'Sales', 'Executive Office'
+  position                TEXT     job title
+  state                   TEXT     US state code
+  date_of_hire            TEXT     ISO date 'YYYY-MM-DD'
+  date_of_termination     TEXT     ISO date 'YYYY-MM-DD', or NULL if still employed
+  termd                   INTEGER  1 if terminated, 0 if still active
+  term_reason             TEXT
+  employment_status       TEXT     e.g. 'Active', 'Voluntarily Terminated', 'Terminated for Cause'
+  manager_name            TEXT     the employee's manager, as 'First Last' (matches another row's employee_display_name)
+  recruitment_source      TEXT     e.g. 'LinkedIn', 'Indeed', 'Referral', 'Diversity Job Fair'
+  performance_score       TEXT     e.g. 'Exceeds', 'Fully Meets', 'Needs Improvement', 'PIP'
+  engagement_survey       REAL     0-5 engagement score
+  emp_satisfaction        INTEGER  0-5 satisfaction score
+  salary                  INTEGER  annual salary in USD
+  days_late_last_30       INTEGER
+  absences                INTEGER
+
+Org hierarchy: managers are themselves rows in this same table. To analyze a manager's team
+(e.g. team size, team attrition rate), self-join the table:
+  SELECT m.employee_name AS manager, COUNT(*) AS team_size, ...
+  FROM employees e JOIN employees m ON e.manager_name = m.employee_display_name
+  GROUP BY m.employee_name
+Not every manager_name matches a row (a few are senior executives not tracked as individual
+employees) -- a plain JOIN correctly excludes those, which is expected.
 """
 
 SQL_SYSTEM_INSTRUCTION = f"""You are a SQL generator for a SQLite database of HR/people-analytics data.

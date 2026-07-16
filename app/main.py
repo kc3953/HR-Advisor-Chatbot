@@ -287,23 +287,29 @@ def _filter_clause(
     recruitment_source: str | None,
     date_from: str | None,
     date_to: str | None,
+    table_alias: str = "",
 ) -> tuple[str, list]:
     """Builds a parameterized WHERE fragment (e.g. " AND department = ?") shared
     by all filterable dashboard endpoints. Always uses placeholders, never string
-    interpolation, even though values currently only come from UI dropdowns."""
+    interpolation, even though values currently only come from UI dropdowns.
+
+    table_alias qualifies column names (e.g. "e" -> "e.department = ?") -- required
+    for self-joins like /api/dashboard/manager-teams, where an unqualified column
+    name would be ambiguous between the two joined instances of `employees`."""
+    prefix = f"{table_alias}." if table_alias else ""
     clauses = []
     params: list = []
     if department:
-        clauses.append("department = ?")
+        clauses.append(f"{prefix}department = ?")
         params.append(department)
     if recruitment_source:
-        clauses.append("recruitment_source = ?")
+        clauses.append(f"{prefix}recruitment_source = ?")
         params.append(recruitment_source)
     if date_from:
-        clauses.append("date_of_hire >= ?")
+        clauses.append(f"{prefix}date_of_hire >= ?")
         params.append(date_from)
     if date_to:
-        clauses.append("date_of_hire <= ?")
+        clauses.append(f"{prefix}date_of_hire <= ?")
         params.append(date_to)
     clause = (" AND " + " AND ".join(clauses)) if clauses else ""
     return clause, params
@@ -431,6 +437,38 @@ async def dashboard_recruitment_source(
         params,
     ).fetchall()
     return {"sources": [dict(r) for r in rows]}
+
+
+@app.get("/api/dashboard/manager-teams")
+@limiter.limit("60/minute")
+async def dashboard_manager_teams(
+    request: Request,
+    department: str | None = Query(None),
+    recruitment_source: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+):
+    """Team size and attrition rate per manager -- a self-join of employees to
+    itself on manager_name = employee_display_name (see app/db.py: the two name
+    columns use different orderings in the source data and must be normalized
+    before they can be joined)."""
+    conn = db.get_connection()
+    where_clause, params = _filter_clause(department, recruitment_source, date_from, date_to, table_alias="e")
+    rows = conn.execute(
+        f"""
+        SELECT m.employee_name AS manager,
+               COUNT(*) AS team_size,
+               ROUND(100.0 * SUM(e.termd) / COUNT(*), 1) AS team_attrition_rate,
+               ROUND(AVG(e.engagement_survey), 2) AS team_avg_engagement
+        FROM employees e
+        JOIN employees m ON e.manager_name = m.employee_display_name
+        WHERE 1=1 {where_clause}
+        GROUP BY m.employee_name
+        ORDER BY team_size DESC
+        """,
+        params,
+    ).fetchall()
+    return {"managers": [dict(r) for r in rows]}
 
 
 class DashboardAskRequest(BaseModel):

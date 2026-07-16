@@ -40,3 +40,61 @@ def test_department_values_are_stripped():
 
 def test_connection_is_cached_singleton():
     assert get_connection() is get_connection()
+
+
+# --------------------------------------------------------------------------- #
+# Manager self-join (employee_display_name)
+#
+# Regression coverage: employee_name is stored "Last, First" while manager_name
+# is stored "First Last" -- joining on those columns directly returns zero rows.
+# employee_display_name exists specifically to fix that; these tests make sure
+# it keeps working and don't let the join silently degrade back to zero matches.
+# --------------------------------------------------------------------------- #
+
+def test_employee_display_name_is_first_last_order():
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT employee_name, employee_display_name FROM employees "
+        "WHERE employee_name = 'Dunn, Amy'"
+    ).fetchone()
+    assert row is not None
+    assert row["employee_display_name"] == "Amy Dunn"
+
+
+def test_naive_join_on_employee_name_returns_zero_rows():
+    """Documents the bug this column exists to fix: without normalization, the
+    join finds no matches at all because the two name columns use different
+    orderings."""
+    conn = get_connection()
+    count = conn.execute(
+        "SELECT COUNT(*) FROM employees e JOIN employees m ON e.manager_name = m.employee_name"
+    ).fetchone()[0]
+    assert count == 0
+
+
+def test_normalized_join_covers_expected_employees():
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT m.employee_name AS manager, COUNT(*) AS team_size
+        FROM employees e JOIN employees m ON e.manager_name = m.employee_display_name
+        GROUP BY m.employee_name
+        """
+    ).fetchall()
+
+    managers = [row["manager"] for row in rows]
+    assert len(managers) == len(set(managers))  # no duplicate manager rows
+    assert 0 < sum(row["team_size"] for row in rows) < 311  # covers most, not all, employees
+
+
+def test_manager_attrition_rates_are_valid_percentages():
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT ROUND(100.0 * SUM(e.termd) / COUNT(*), 1) AS team_attrition_rate
+        FROM employees e JOIN employees m ON e.manager_name = m.employee_display_name
+        GROUP BY m.employee_name
+        """
+    ).fetchall()
+    assert rows  # sanity: the join actually produced groups
+    assert all(0 <= row["team_attrition_rate"] <= 100 for row in rows)

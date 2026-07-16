@@ -18,11 +18,23 @@ def _parse_date(value: str) -> str | None:
     return f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
 
 
+def _normalize_name(employee_name: str) -> str:
+    """Converts 'Last, First' (as used in Employee_Name) to 'First Last' (as used in
+    ManagerName), so the two columns can be joined. Without this, a naive join on
+    employee_name = manager_name returns zero rows -- the two columns use different
+    name orderings."""
+    if "," in employee_name:
+        last, first = employee_name.split(",", 1)
+        return f"{first.strip()} {last.strip()}"
+    return employee_name.strip()
+
+
 def _load_dataset(conn: sqlite3.Connection) -> None:
     conn.execute("""
         CREATE TABLE employees (
             employee_id INTEGER,
             employee_name TEXT,
+            employee_display_name TEXT,
             department TEXT,
             position TEXT,
             state TEXT,
@@ -48,6 +60,7 @@ def _load_dataset(conn: sqlite3.Connection) -> None:
             (
                 int(row["EmpID"]),
                 row["Employee_Name"].strip(),
+                _normalize_name(row["Employee_Name"]),
                 row["Department"].strip(),
                 row["Position"].strip(),
                 row["State"].strip(),
@@ -71,11 +84,11 @@ def _load_dataset(conn: sqlite3.Connection) -> None:
     conn.executemany(
         """
         INSERT INTO employees (
-            employee_id, employee_name, department, position, state,
+            employee_id, employee_name, employee_display_name, department, position, state,
             date_of_hire, date_of_termination, termd, term_reason, employment_status,
             manager_name, recruitment_source, performance_score, engagement_survey,
             emp_satisfaction, salary, days_late_last_30, absences
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )

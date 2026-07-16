@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Insights Memo — People Analytics</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 900px;
+            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+
+        .header-icon {
+            font-size: 2.2rem;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.3px; }
+        .header-text p { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+
+        .nav-links { display: flex; gap: 0.5rem; }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.15);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.25); }
+
+        .memo-intro {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .memo-intro strong { color: #1a3c5e; }
+
+        .finding {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .finding-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #dbeafe;
+            color: #1a3c5e;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-right: 0.6rem;
+        }
+
+        .finding h2 {
+            font-size: 1.05rem;
+            color: #1a3c5e;
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .finding-section { margin-bottom: 0.9rem; }
+        .finding-section:last-child { margin-bottom: 0; }
+
+        .finding-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            margin-bottom: 0.3rem;
+        }
+
+        .finding-section p {
+            font-size: 0.88rem;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .finding-section.recommendation {
+            background: #f0fdf4;
+            border-left: 3px solid #4ade80;
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .stat {
+            font-weight: 700;
+            color: #2d6a9f;
+        }
+
+        .footer-note {
+            width: 100%;
+            max-width: 900px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon">📝</div>
+            <div class="header-text">
+                <h1>Insights Memo</h1>
+                <p>Three findings worth a leadership conversation, from the HR dataset</p>
+            </div>
+        </div>
+        <div class="nav-links">
+            <a class="nav-link" href="/static/index.html">💬 Chat</a>
+            <a class="nav-link" href="/static/dashboard.html">📊 Dashboard</a>
+            <a class="nav-link" href="/static/ask.html">🤖 Ask AI</a>
+        </div>
+    </div>
+
+    <div class="memo-intro">
+        <strong>Summary:</strong> The live dashboard and Ask AI tools let anyone explore this dataset interactively.
+        This memo is the other half of that — the synthesized version of what I'd actually walk into a leadership
+        review with: three findings, why they matter, and what I'd recommend doing about each one.
+    </div>
+
+    <div class="finding">
+        <h2><span class="finding-number">1</span>Attrition is concentrated in two departments</h2>
+        <div class="finding-section">
+            <div class="finding-label">Finding</div>
+            <p>Production (<span class="stat">39.7%</span>) and Software Engineering (<span class="stat">36.4%</span>)
+            have attrition rates roughly double the next-highest department, while Executive Office sits at
+            <span class="stat">0%</span>. This isn't a company-wide retention problem — it's concentrated.</p>
+        </div>
+        <div class="finding-section">
+            <div class="finding-label">So What</div>
+            <p>Company-wide retention initiatives would spend effort on departments that don't need it. The
+            underlying driver is likely specific to how these two departments are managed, compensated, or
+            structured — not a general culture issue.</p>
+        </div>
+        <div class="finding-section recommendation">
+            <div class="finding-label">Recommendation</div>
+            <p>Prioritize a focused retention investigation in Production and Software Engineering before
+            rolling out any broad, company-wide retention program.</p>
+        </div>
+    </div>
+
+    <div class="finding">
+        <h2><span class="finding-number">2</span>Attrition looks manager-driven, not just role-driven</h2>
+        <div class="finding-section">
+            <div class="finding-label">Finding</div>
+            <p>Joining employees to their managers (see the Dashboard's "Attrition Rate by Manager" chart) shows
+            teams of similar size (~21-22 people) and similar average engagement scores (~4.0) ranging from
+            <span class="stat">27.3%</span> to <span class="stat">61.9%</span> attrition depending on who manages
+            them.</p>
+        </div>
+        <div class="finding-section">
+            <div class="finding-label">So What</div>
+            <p>If attrition were purely explained by department, role, or even team engagement scores, similarly
+            structured teams should land in a similar range. The spread suggests management practice itself is a
+            meaningful, independent driver of attrition — not just downstream of department or team sentiment.</p>
+        </div>
+        <div class="finding-section recommendation">
+            <div class="finding-label">Recommendation</div>
+            <p>Audit management practices for the highest-attrition managers specifically, rather than assuming
+            the fix lives at the department level.</p>
+        </div>
+    </div>
+
+    <div class="finding">
+        <h2><span class="finding-number">3</span>Hiring volume and hiring quality are inversely related across sources</h2>
+        <div class="finding-section">
+            <div class="finding-label">Finding</div>
+            <p>Employee Referral (<span class="stat">16.1%</span> attrition) and Website
+            (<span class="stat">7.7%</span>) retain far better than the highest-volume sourcing channels —
+            Google Search (<span class="stat">61.2%</span>) and Diversity Job Fair (<span class="stat">55.2%</span>)
+            — despite those channels producing more hires in absolute terms.</p>
+        </div>
+        <div class="finding-section">
+            <div class="finding-label">So What</div>
+            <p>Sourcing decisions optimized purely for hire volume or cost-per-hire are missing the bigger lever:
+            retention. A channel that produces fewer hires but keeps them 3-4x longer is likely cheaper overall
+            once replacement cost is factored in.</p>
+        </div>
+        <div class="finding-section recommendation">
+            <div class="finding-label">Recommendation</div>
+            <p>Shift sourcing budget and recruiter time toward Employee Referral, and evaluate Google Search /
+            Diversity Job Fair pipelines specifically for what's driving early attrition — screening quality,
+            role-fit expectations, or onboarding — rather than just funding more volume there.</p>
+        </div>
+    </div>
+
+    <p class="footer-note">
+        All figures computed live from the same HRDataset_v14 dataset (CC0) that powers the Dashboard and Ask AI
+        pages — see the <a href="/static/dashboard.html">Dashboard</a> for the interactive versions of findings
+        1 and 2, or ask <a href="/static/ask.html">Ask AI</a> a follow-up question directly.
+    </p>
+
+</body>
+</html>

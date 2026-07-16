@@ -173,6 +173,7 @@
         <div class="nav-links">
             <a class="nav-link" href="/static/index.html">💬 Chat</a>
             <a class="nav-link" href="/static/ask.html">🤖 Ask AI</a>
+            <a class="nav-link" href="/static/insights.html">📝 Insights</a>
         </div>
     </div>
 
@@ -216,6 +217,12 @@
             <h2>Hires by Recruitment Source</h2>
             <canvas id="sourceChart"></canvas>
             <div class="insight" id="sourceInsight"></div>
+        </div>
+
+        <div class="card full">
+            <h2>Attrition Rate by Manager</h2>
+            <canvas id="managerChart"></canvas>
+            <div class="insight" id="managerInsight"></div>
         </div>
     </div>
 
@@ -365,10 +372,44 @@
                 `<strong>Insight:</strong> ${top.recruitment_source} is the top hiring source, with ${top.hires} hires.`;
         }
 
+        async function loadManagerTeams() {
+            const res = await fetch('/api/dashboard/manager-teams' + currentFilters());
+            const data = await res.json();
+            const insightEl = document.getElementById('managerInsight');
+
+            if (!data.managers.length) {
+                renderChart('managerChart', { type: 'bar', data: { labels: [], datasets: [] } });
+                insightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+                return;
+            }
+
+            renderChart('managerChart', {
+                type: 'bar',
+                data: {
+                    labels: data.managers.map(m => m.manager),
+                    datasets: [{
+                        label: 'Team Attrition Rate (%)',
+                        data: data.managers.map(m => m.team_attrition_rate),
+                        backgroundColor: palette,
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+
+            const sorted = [...data.managers].sort((a, b) => b.team_attrition_rate - a.team_attrition_rate);
+            const highest = sorted[0];
+            const lowest = sorted[sorted.length - 1];
+            insightEl.innerHTML =
+                `<strong>Insight:</strong> ${highest.manager}'s team has the highest attrition at ${highest.team_attrition_rate}% ` +
+                `(team size ${highest.team_size}), vs. ${lowest.manager}'s ${lowest.team_attrition_rate}% (team size ${lowest.team_size}) ` +
+                `— similar team sizes, very different outcomes. Computed via a self-join on manager_name (see README for why that join isn't trivial).`;
+        }
+
         function loadAllCharts() {
             loadHeadcount();
             loadAttrition();
             loadSource();
+            loadManagerTeams();
         }
 
         document.getElementById('applyFiltersBtn').addEventListener('click', loadAllCharts);

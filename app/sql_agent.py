@@ -30,6 +30,13 @@ Columns:
   salary                  INTEGER  annual salary in USD
   days_late_last_30       INTEGER
   absences                INTEGER
+  gender                  TEXT     'M' or 'F'
+  race                    TEXT     e.g. 'White', 'Black or African American', 'Asian', 'Two or more races',
+                                    'American Indian or Alaska Native', 'Hispanic'
+  marital_status          TEXT     e.g. 'Single', 'Married', 'Divorced', 'Widowed', 'Separated'
+  date_of_birth           TEXT     ISO date 'YYYY-MM-DD' -- use for age, e.g. (julianday('now') - julianday(date_of_birth)) / 365.25
+  special_projects_count  INTEGER  number of special projects the employee has worked on (workload signal)
+  last_performance_review_date TEXT  ISO date 'YYYY-MM-DD' of the employee's most recent performance review
 
 Org hierarchy: managers are themselves rows in this same table. To analyze a manager's team
 (e.g. team size, team attrition rate), self-join the table:

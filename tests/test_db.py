@@ -98,3 +98,69 @@ def test_manager_attrition_rates_are_valid_percentages():
     ).fetchall()
     assert rows  # sanity: the join actually produced groups
     assert all(0 <= row["team_attrition_rate"] <= 100 for row in rows)
+
+
+# --------------------------------------------------------------------------- #
+# Demographic / workload columns (added to support pay-equity, workload, and
+# review-cadence questions -- previously present in the CSV but not loaded)
+# --------------------------------------------------------------------------- #
+
+
+def test_gender_is_loaded_for_all_rows():
+    conn = get_connection()
+    values = {row[0] for row in conn.execute("SELECT DISTINCT gender FROM employees")}
+    assert values == {"M", "F"}
+
+
+def test_race_is_loaded_and_nonblank():
+    conn = get_connection()
+    races = [row[0] for row in conn.execute("SELECT race FROM employees")]
+    assert len(races) == 311
+    assert all(r for r in races)
+
+
+def test_date_of_birth_is_iso_format_and_plausible():
+    conn = get_connection()
+    rows = conn.execute("SELECT date_of_birth FROM employees").fetchall()
+    assert len(rows) == 311
+    assert all(ISO_DATE_RE.match(row[0]) for row in rows)
+    years = {int(row[0][:4]) for row in rows}
+    assert all(1940 < y < 2000 for y in years)
+
+
+def test_special_projects_count_is_non_negative_int():
+    conn = get_connection()
+    values = [row[0] for row in conn.execute("SELECT special_projects_count FROM employees")]
+    assert all(isinstance(v, int) and v >= 0 for v in values)
+
+
+def test_last_performance_review_date_is_iso_or_null():
+    conn = get_connection()
+    rows = conn.execute("SELECT last_performance_review_date FROM employees").fetchall()
+    for (value,) in rows:
+        assert value is None or ISO_DATE_RE.match(value)
+
+
+# --------------------------------------------------------------------------- #
+# Pay-equity query logic (mirrors app/main.py's dashboard_pay_equity endpoint)
+# --------------------------------------------------------------------------- #
+
+
+def test_pay_equity_by_gender_covers_all_employees():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT gender, ROUND(AVG(salary), 0) AS avg_salary, COUNT(*) AS n FROM employees GROUP BY gender"
+    ).fetchall()
+    assert {row["gender"] for row in rows} == {"M", "F"}
+    assert sum(row["n"] for row in rows) == 311
+
+
+def test_pay_equity_by_race_excludes_small_samples():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT race, COUNT(*) AS n FROM employees GROUP BY race HAVING COUNT(*) >= 5"
+    ).fetchall()
+    assert all(row["n"] >= 5 for row in rows)
+    # Sanity: the exclusion actually drops at least one small group present in the raw data
+    all_races = conn.execute("SELECT DISTINCT race FROM employees").fetchall()
+    assert len(rows) < len(all_races)

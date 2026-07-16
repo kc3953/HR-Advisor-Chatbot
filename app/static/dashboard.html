@@ -222,6 +222,18 @@
             <canvas id="managerChart"></canvas>
             <div class="insight" id="managerInsight"></div>
         </div>
+
+        <div class="card">
+            <h2>Average Salary by Gender</h2>
+            <canvas id="payGenderChart"></canvas>
+            <div class="insight" id="payGenderInsight"></div>
+        </div>
+
+        <div class="card">
+            <h2>Average Salary by Race</h2>
+            <canvas id="payRaceChart"></canvas>
+            <div class="insight" id="payRaceInsight"></div>
+        </div>
     </div>
 
     <script>
@@ -403,11 +415,63 @@
                 `— similar team sizes, very different outcomes. Computed via a self-join on manager_name (see README for why that join isn't trivial).`;
         }
 
+        async function loadPayEquity() {
+            const res = await fetch('/api/dashboard/pay-equity' + currentFilters());
+            const data = await res.json();
+
+            const genderInsightEl = document.getElementById('payGenderInsight');
+            if (!data.by_gender.length) {
+                renderChart('payGenderChart', { type: 'bar', data: { labels: [], datasets: [] } });
+                genderInsightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+            } else {
+                renderChart('payGenderChart', {
+                    type: 'bar',
+                    data: {
+                        labels: data.by_gender.map(g => g.gender),
+                        datasets: [{
+                            label: 'Average Salary ($)',
+                            data: data.by_gender.map(g => g.avg_salary),
+                            backgroundColor: palette,
+                        }]
+                    },
+                    options: { plugins: { legend: { display: false } } }
+                });
+                const [a, b] = data.by_gender;
+                const gap = b ? Math.abs(a.avg_salary - b.avg_salary) : 0;
+                const gapPct = b ? Math.round((gap / Math.min(a.avg_salary, b.avg_salary)) * 100) : 0;
+                genderInsightEl.innerHTML = b
+                    ? `<strong>Insight:</strong> Raw company-wide gap is ~${gapPct}% (unadjusted for department/role — see README/Insights for the department-controlled breakdown).`
+                    : '<strong>Insight:</strong> Not enough data for a comparison under the current filters.';
+            }
+
+            const raceInsightEl = document.getElementById('payRaceInsight');
+            if (!data.by_race.length) {
+                renderChart('payRaceChart', { type: 'bar', data: { labels: [], datasets: [] } });
+                raceInsightEl.innerHTML = '<strong>Insight:</strong> No employees match the current filters.';
+            } else {
+                renderChart('payRaceChart', {
+                    type: 'bar',
+                    data: {
+                        labels: data.by_race.map(r => r.race),
+                        datasets: [{
+                            label: 'Average Salary ($)',
+                            data: data.by_race.map(r => r.avg_salary),
+                            backgroundColor: palette,
+                        }]
+                    },
+                    options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+                });
+                raceInsightEl.innerHTML =
+                    `<strong>Insight:</strong> Groups with fewer than 5 employees are excluded — too small a sample to average reliably.`;
+            }
+        }
+
         function loadAllCharts() {
             loadHeadcount();
             loadAttrition();
             loadSource();
             loadManagerTeams();
+            loadPayEquity();
         }
 
         document.getElementById('applyFiltersBtn').addEventListener('click', loadAllCharts);

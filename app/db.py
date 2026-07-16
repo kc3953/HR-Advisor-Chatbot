@@ -18,6 +18,16 @@ def _parse_date(value: str) -> str | None:
     return f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
 
 
+def _parse_dob(value: str) -> str | None:
+    """Convert M/D/YY (as used in DOB) to ISO YYYY-MM-DD. Every DOB in this dataset
+    falls between 1951-1992, so the 2-digit year is always 19xx here."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    month, day, year = value.split("/")
+    return f"19{int(year):02d}-{int(month):02d}-{int(day):02d}"
+
+
 def _normalize_name(employee_name: str) -> str:
     """Converts 'Last, First' (as used in Employee_Name) to 'First Last' (as used in
     ManagerName), so the two columns can be joined. Without this, a naive join on
@@ -50,7 +60,13 @@ def _load_dataset(conn: sqlite3.Connection) -> None:
             emp_satisfaction INTEGER,
             salary INTEGER,
             days_late_last_30 INTEGER,
-            absences INTEGER
+            absences INTEGER,
+            gender TEXT,
+            race TEXT,
+            marital_status TEXT,
+            date_of_birth TEXT,
+            special_projects_count INTEGER,
+            last_performance_review_date TEXT
         )
     """)
 
@@ -77,6 +93,12 @@ def _load_dataset(conn: sqlite3.Connection) -> None:
                 int(row["Salary"]) if row["Salary"] else None,
                 int(row["DaysLateLast30"]) if row["DaysLateLast30"] else 0,
                 int(row["Absences"]) if row["Absences"] else 0,
+                row["Sex"].strip(),
+                row["RaceDesc"].strip(),
+                row["MaritalDesc"].strip(),
+                _parse_dob(row["DOB"]),
+                int(row["SpecialProjectsCount"]) if row["SpecialProjectsCount"] else 0,
+                _parse_date(row["LastPerformanceReview_Date"]),
             )
             for row in reader
         ]
@@ -87,8 +109,10 @@ def _load_dataset(conn: sqlite3.Connection) -> None:
             employee_id, employee_name, employee_display_name, department, position, state,
             date_of_hire, date_of_termination, termd, term_reason, employment_status,
             manager_name, recruitment_source, performance_score, engagement_survey,
-            emp_satisfaction, salary, days_late_last_30, absences
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            emp_satisfaction, salary, days_late_last_30, absences,
+            gender, race, marital_status, date_of_birth, special_projects_count,
+            last_performance_review_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )

@@ -471,6 +471,47 @@ async def dashboard_manager_teams(
     return {"managers": [dict(r) for r in rows]}
 
 
+@app.get("/api/dashboard/pay-equity")
+@limiter.limit("60/minute")
+async def dashboard_pay_equity(
+    request: Request,
+    department: str | None = Query(None),
+    recruitment_source: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+):
+    """Average salary by gender and by race, for a same-department pay-equity check.
+    Race groups with fewer than 5 employees are excluded -- too small a sample to
+    be a meaningful average."""
+    conn = db.get_connection()
+    where_clause, params = _filter_clause(department, recruitment_source, date_from, date_to)
+    gender_rows = conn.execute(
+        f"""
+        SELECT gender, ROUND(AVG(salary), 0) AS avg_salary, COUNT(*) AS n
+        FROM employees
+        WHERE 1=1 {where_clause}
+        GROUP BY gender
+        ORDER BY gender
+        """,
+        params,
+    ).fetchall()
+    race_rows = conn.execute(
+        f"""
+        SELECT race, ROUND(AVG(salary), 0) AS avg_salary, COUNT(*) AS n
+        FROM employees
+        WHERE 1=1 {where_clause}
+        GROUP BY race
+        HAVING COUNT(*) >= 5
+        ORDER BY avg_salary DESC
+        """,
+        params,
+    ).fetchall()
+    return {
+        "by_gender": [dict(r) for r in gender_rows],
+        "by_race": [dict(r) for r in race_rows],
+    }
+
+
 class DashboardAskRequest(BaseModel):
     question: str
 

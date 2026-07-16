@@ -20,7 +20,7 @@ A domain-specific chatbot that answers HR and people analytics questions, enforc
 
 ## Data Source
 
-The SQL agent and dashboard run on **[HRDataset_v14](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set)** by Rich Huebner (CC0 Public Domain). It's a widely-used reference dataset of a fictitious company's HR records (311 employees) with real hire/termination dates, department, performance, and recruitment-source fields — no real individuals' data is used.
+The SQL agent and dashboard run on **[HRDataset_v14](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set)** by Rich Huebner (CC0 Public Domain). It's a widely-used reference dataset of a fictitious company's HR records (311 employees) with real hire/termination dates, department, performance, recruitment-source, gender, race, marital status, date of birth, workload, and review-cadence fields — no real individuals' data is used.
 
 ## Bugs I Found and Fixed
 

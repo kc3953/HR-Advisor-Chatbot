@@ -2,7 +2,7 @@
 
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
-[**Live URL Link**](https://hr-advisor-1045995221487.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-1045995221487.us-central1.run.app/static/dashboard.html)
+[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html)
 
 ## What It Does
 
@@ -112,7 +112,7 @@ uv run python eval.py
 
 ### Against deployed Cloud Run
 ```bash
-uv run python eval.py --url https://hr-advisor-1045995221487.us-central1.run.app/chat
+uv run python eval.py --url https://hr-advisor-36222488155.us-central1.run.app/chat
 ```
 
 ---

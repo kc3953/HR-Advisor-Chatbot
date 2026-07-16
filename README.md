@@ -59,6 +59,7 @@ domain-chatbot/
 │   └── static/
 │       ├── index.html    # Chat UI
 │       └── dashboard.html # People Analytics dashboard (Chart.js)
+├── tests/                # Unit tests (pytest) — SQL safety, dataset loading, filters
 ├── eval.py              # Evaluation harness (deterministic + MaaJ)
 ├── eval_dataset.json    # 40 test cases across 4 categories
 ├── Dockerfile
@@ -107,6 +108,17 @@ http://localhost:8000/static/index.html
 Other endpoints:
 - `http://localhost:8000/health` — health check
 - `http://localhost:8000/` — API status
+
+---
+
+## Run Tests
+
+Unit tests cover the SQL-safety validation, dataset loading, and dashboard filter logic — the parts of the app that don't require a live Gemini call:
+```bash
+uv run pytest
+```
+
+For LLM-dependent behavior (scope enforcement, safety protocol, SQL-agent answer quality), see **Run Evaluations** below.
 
 ---
 

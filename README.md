@@ -17,6 +17,22 @@ A domain-specific chatbot that answers HR and people analytics questions, enforc
 
 The SQL agent and dashboard run on **[HRDataset_v14](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set)** by Rich Huebner (CC0 Public Domain). It's a widely-used reference dataset of a fictitious company's HR records (311 employees) with real hire/termination dates, department, performance, and recruitment-source fields — no real individuals' data is used.
 
+## Rate Limiting
+
+This service is public and unauthenticated, and every `/chat` or `/api/dashboard/ask` call spends real Vertex AI budget, so requests are throttled per IP address (via [slowapi](https://github.com/laurentS/slowapi)):
+
+| Endpoint(s) | Limit |
+|---|---|
+| `/chat`, `/api/dashboard/ask` (LLM calls) | 10 requests/minute |
+| `/api/dashboard/headcount`, `/attrition`, `/recruitment-source`, `/filter-options` (pure SQL) | 60 requests/minute |
+
+Cloud Run is also capped at `--max-instances=2`, which bounds worst-case concurrent cost regardless of rate-limiting behavior.
+
+For local development, `eval.py` fires ~40 sequential requests at `/chat`, which would otherwise trip the 10/minute limit. Disable rate limiting for local eval runs with:
+```bash
+RATE_LIMIT_ENABLED=false uv run python eval.py
+```
+
 ## Tech Stack
 
 | Layer | Technology |

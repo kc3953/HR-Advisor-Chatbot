@@ -1,11 +1,14 @@
 import os
 import logging
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app import db, sql_agent
 
@@ -28,6 +31,15 @@ app.add_middleware(
 
 # Serves the frontend at the root URL
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Rate limiting — this service is public and unauthenticated, and every /chat or
+# /api/dashboard/ask call spends real Vertex AI budget, so limits are keyed by
+# client IP. Disable via RATE_LIMIT_ENABLED=false for local eval runs (eval.py
+# fires ~40 sequential requests, which would otherwise trip the /chat limit).
+limiter = Limiter(key_func=get_remote_address)
+limiter.enabled = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() != "false"
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 2. Vertex AI Client Setup
 # In Cloud Run, authentication is automatic via the service account.
@@ -219,9 +231,10 @@ async def health_check():
     return {"status": "healthy", "service": "domain-chatbot"}
 
 @app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    logger.info(f"Received chat request: {request.message[:100]}...")
-    msg_lower = request.message.lower()
+@limiter.limit("10/minute")
+async def chat_endpoint(request: Request, payload: ChatRequest):
+    logger.info(f"Received chat request: {payload.message[:100]}...")
+    msg_lower = payload.message.lower()
     try:
         # Route quantitative questions to the text-to-SQL agent, which answers
         # with real numbers computed from the HR dataset. Safety and out-of-scope
@@ -235,7 +248,7 @@ async def chat_endpoint(request: ChatRequest):
         if is_data_query and not is_distress and not is_out_of_scope and not is_conceptual:
             logger.info("Routing to SQL agent")
             conn = db.get_connection()
-            data_response = sql_agent.handle_data_question(client, conn, request.message)
+            data_response = sql_agent.handle_data_question(client, conn, payload.message)
             return {"response": data_response}
 
         response = client.models.generate_content(
@@ -244,12 +257,12 @@ async def chat_endpoint(request: ChatRequest):
                 system_instruction=SYSTEM_INSTRUCTION,
                 temperature=0.3, # Low temp for deterministic factual answers
             ),
-            contents=request.message
+            contents=payload.message
         )
         llm_response = response.text
 
         # Run Python backstop to catch LLM misses
-        override = backstop_classifier(request.message, llm_response)
+        override = backstop_classifier(payload.message, llm_response)
         if override:
             return {"response": override}
 
@@ -296,7 +309,8 @@ def _filter_clause(
 
 
 @app.get("/api/dashboard/filter-options")
-async def dashboard_filter_options():
+@limiter.limit("60/minute")
+async def dashboard_filter_options(request: Request):
     """Distinct filter values and hire-date bounds, to drive the filter UI dynamically."""
     conn = db.get_connection()
     departments = [r[0] for r in conn.execute("SELECT DISTINCT department FROM employees ORDER BY department")]
@@ -311,7 +325,9 @@ async def dashboard_filter_options():
 
 
 @app.get("/api/dashboard/headcount")
+@limiter.limit("60/minute")
 async def dashboard_headcount(
+    request: Request,
     department: str | None = Query(None),
     recruitment_source: str | None = Query(None),
     date_from: str | None = Query(None),
@@ -362,7 +378,9 @@ async def dashboard_headcount(
 
 
 @app.get("/api/dashboard/attrition")
+@limiter.limit("60/minute")
 async def dashboard_attrition(
+    request: Request,
     department: str | None = Query(None),
     recruitment_source: str | None = Query(None),
     date_from: str | None = Query(None),
@@ -388,7 +406,9 @@ async def dashboard_attrition(
 
 
 @app.get("/api/dashboard/recruitment-source")
+@limiter.limit("60/minute")
 async def dashboard_recruitment_source(
+    request: Request,
     department: str | None = Query(None),
     recruitment_source: str | None = Query(None),
     date_from: str | None = Query(None),
@@ -415,8 +435,9 @@ class DashboardAskRequest(BaseModel):
 
 
 @app.post("/api/dashboard/ask")
-async def dashboard_ask(request: DashboardAskRequest):
+@limiter.limit("10/minute")
+async def dashboard_ask(request: Request, payload: DashboardAskRequest):
     """Free-text question -> a chart, generated live via the text-to-SQL agent."""
     conn = db.get_connection()
-    result = sql_agent.handle_dashboard_question(client, conn, request.question)
+    result = sql_agent.handle_dashboard_question(client, conn, payload.question)
     return result

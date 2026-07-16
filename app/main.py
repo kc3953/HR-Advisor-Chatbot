@@ -1,3 +1,4 @@
+import calendar
 import os
 import logging
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -362,7 +363,9 @@ async def dashboard_headcount(
 
     counts = []
     for month in months:
-        month_end = f"{month}-28"  # good enough granularity for a monthly trend
+        y, m = (int(x) for x in month.split("-"))
+        last_day = calendar.monthrange(y, m)[1]
+        month_end = f"{month}-{last_day:02d}"
         row = conn.execute(
             f"""
             SELECT COUNT(*) FROM employees

@@ -4,13 +4,14 @@
 
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
-[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html)
+[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Ask AI](https://hr-advisor-36222488155.us-central1.run.app/static/ask.html)
 
 ## What It Does
 
 - Answers conceptual questions about HR policies, employee benefits, performance management, talent acquisition, workforce planning, and people analytics concepts
 - **Answers quantitative questions with real computed numbers**: a text-to-SQL agent generates and safely executes SQL against a real HR dataset (e.g. "What's the attrition rate by department?"), then narrates the result as an answer + insight + recommendation
-- **People Analytics Dashboard** (`/static/dashboard.html`): headcount trend, attrition rate by department, and hires by recruitment source, computed live from the dataset
+- **People Analytics Dashboard** (`/static/dashboard.html`): fixed KPI charts — headcount trend, attrition rate by department, and hires by recruitment source — with filters, computed live from the dataset
+- **Ask AI** (`/static/ask.html`): a standalone page where any free-text question generates its own chart (bar/line/pie, picked by the LLM) and narration; each question stays in a running history instead of replacing the last result
 - Refuses out-of-scope topics (technology/coding, lifestyle, financial/legal advice) with a clear explanation
 - Detects distressed users and immediately provides crisis resources (988, Crisis Text Line, EAP)
 - Uses a Python backstop classifier to catch cases where the LLM misses scope or safety rules
@@ -60,7 +61,8 @@ domain-chatbot/
 │   │   └── HRDataset_v14.csv
 │   └── static/
 │       ├── index.html    # Chat UI
-│       └── dashboard.html # People Analytics dashboard (Chart.js)
+│       ├── dashboard.html # Fixed KPI charts + filters (Chart.js)
+│       └── ask.html      # Standalone ask-a-question -> chart history feed
 ├── tests/                # Unit tests (pytest) — SQL safety, dataset loading, filters
 ├── eval.py              # Evaluation harness (deterministic + MaaJ)
 ├── eval_dataset.json    # 40 test cases across 4 categories

@@ -1,5 +1,7 @@
 # HR Advisor — People Analytics Chatbot
 
+[![CI](https://github.com/kc3953/HR-Advisor-Chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/kc3953/HR-Advisor-Chatbot/actions/workflows/ci.yml)
+
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
 [**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html)

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>HR Advisor — People Analytics Assistant</title>
+    <title>HR Advisor — People Analytics</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -17,42 +17,31 @@
             padding: 2rem 1rem;
         }
 
-        /* Header */
         .header {
             width: 100%;
-            max-width: 700px;
+            max-width: 900px;
             background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
-            border-radius: 16px 16px 0 0;
-            padding: 1.5rem 2rem;
+            border-radius: 16px;
+            padding: 2rem;
             color: white;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            text-align: center;
+            margin-bottom: 2rem;
         }
 
         .header-icon {
-            font-size: 2.2rem;
+            font-size: 2.6rem;
             background: rgba(255,255,255,0.15);
             border-radius: 50%;
-            width: 56px;
-            height: 56px;
+            width: 68px;
+            height: 68px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            margin: 0 auto 1rem auto;
         }
 
-        .header-text h1 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .header-text p {
-            font-size: 0.85rem;
-            opacity: 0.8;
-            margin-top: 2px;
-        }
+        .header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 0.5rem; }
+        .header p { font-size: 0.9rem; opacity: 0.85; max-width: 560px; margin: 0 auto; line-height: 1.5; }
 
         .status-dot {
             width: 8px;
@@ -69,372 +58,108 @@
             50% { opacity: 0.4; }
         }
 
-        /* Suggestion chips */
-        .suggestions {
+        .cards {
             width: 100%;
-            max-width: 700px;
-            background: #e8f0f7;
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            border-left: 1px solid #c9d8e8;
-            border-right: 1px solid #c9d8e8;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
         }
 
-        .chip {
+        .card {
             background: white;
-            border: 1px solid #2d6a9f;
-            color: #2d6a9f;
-            font-size: 0.75rem;
-            padding: 4px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .chip:hover {
-            background: #2d6a9f;
-            color: white;
-        }
-
-        /* Chat container */
-        .chat-container {
-            width: 100%;
-            max-width: 700px;
-            background: white;
-            border-left: 1px solid #c9d8e8;
-            border-right: 1px solid #c9d8e8;
-            flex: 1;
-        }
-
-        #chat-box {
-            height: 420px;
-            overflow-y: auto;
-            padding: 1.5rem;
+            border: 1px solid #c9d8e8;
+            border-radius: 16px;
+            padding: 1.5rem 1.75rem;
+            text-decoration: none;
+            color: inherit;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.6rem;
+            transition: transform 0.15s, box-shadow 0.15s;
         }
 
-        /* Welcome message */
-        .welcome {
-            text-align: center;
-            color: #64748b;
-            font-size: 0.875rem;
-            padding: 1rem;
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(26,60,94,0.12);
+            border-color: #2d6a9f;
         }
 
-        .welcome strong {
-            display: block;
-            font-size: 1rem;
-            color: #1a3c5e;
-            margin-bottom: 0.4rem;
-        }
-
-        /* Message bubbles */
-        .message-row {
-            display: flex;
-            align-items: flex-end;
-            gap: 8px;
-        }
-
-        .message-row.user {
-            flex-direction: row-reverse;
-        }
-
-        .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+        .card-icon {
+            font-size: 1.8rem;
+            background: #dbeafe;
+            border-radius: 12px;
+            width: 52px;
+            height: 52px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
-            flex-shrink: 0;
         }
 
-        .avatar.bot { background: #dbeafe; }
-        .avatar.user-av { background: #e0f2fe; }
+        .card h2 { font-size: 1.05rem; color: #1a3c5e; }
 
-        .bubble {
-            max-width: 78%;
-            padding: 0.75rem 1rem;
-            border-radius: 16px;
-            font-size: 0.9rem;
-            line-height: 1.55;
-            white-space: pre-wrap;
-        }
+        .card p { font-size: 0.85rem; color: #475569; line-height: 1.55; }
 
-        .bubble.user {
-            background: #1a3c5e;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .bubble.bot {
-            background: #f1f5f9;
-            color: #1e293b;
-            border-bottom-left-radius: 4px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .bubble.error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-
-        .bubble ul {
-            padding-left: 1.2rem;
-            margin: 0.3rem 0;
-        }
-
-        .bubble li {
-            margin-bottom: 0.25rem;
-        }
-
-        .bubble p {
-            margin: 0.5rem 0 0.2rem 0;
-        }
-
-        /* Typing indicator */
-        .typing .bubble {
-            padding: 0.75rem 1.2rem;
-        }
-
-        .typing-dots span {
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            background: #94a3b8;
-            border-radius: 50%;
-            margin: 0 2px;
-            animation: bounce 1.2s infinite;
-        }
-
-        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes bounce {
-            0%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-6px); }
-        }
-
-        /* Input area */
-        .input-area {
-            width: 100%;
-            max-width: 700px;
-            background: white;
-            border: 1px solid #c9d8e8;
-            border-top: 1px solid #e2e8f0;
-            border-radius: 0 0 16px 16px;
-            padding: 1rem 1.5rem;
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        #message {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 24px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.2s;
-            font-family: inherit;
-        }
-
-        #message:focus { border-color: #2d6a9f; }
-
-        #message::placeholder { color: #94a3b8; }
-
-        button#send-btn {
-            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 0.75rem 1.4rem;
-            font-size: 0.9rem;
+        .card .cta {
+            font-size: 0.8rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            white-space: nowrap;
+            color: #2d6a9f;
+            margin-top: 0.2rem;
         }
 
-        button#send-btn:hover { opacity: 0.88; }
-        button#send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Disclaimer */
-        .disclaimer {
+        .footer-note {
             width: 100%;
-            max-width: 700px;
+            max-width: 900px;
             text-align: center;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: #94a3b8;
-            margin-top: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .cards { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <div class="header" style="justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <div class="header-icon">👥</div>
-            <div class="header-text">
-                <h1>HR Advisor &mdash; People Analytics Assistant</h1>
-                <p><span class="status-dot"></span>Online &bull; Powered by Gemini on Vertex AI</p>
-            </div>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <a href="/static/dashboard.html" style="color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; background: rgba(255,255,255,0.15); padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap;">📊 Dashboard</a>
-            <a href="/static/ask.html" style="color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; background: rgba(255,255,255,0.15); padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap;">🤖 Ask AI</a>
-            <a href="/static/insights.html" style="color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; background: rgba(255,255,255,0.15); padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap;">📝 Insights</a>
-        </div>
+    <div class="header">
+        <div class="header-icon">👥</div>
+        <h1>HR Advisor &mdash; People Analytics</h1>
+        <p><span class="status-dot"></span>Online &bull; Powered by Gemini on Vertex AI &mdash; explore any of the tools below</p>
     </div>
 
-    <!-- Suggestion chips -->
-    <div class="suggestions">
-        <span class="chip" onclick="fillMessage('What is employee attrition rate?')">Attrition rate</span>
-        <span class="chip" onclick="fillMessage('How does a performance improvement plan work?')">Performance PIP</span>
-        <span class="chip" onclick="fillMessage('What metrics measure employee engagement?')">Engagement metrics</span>
-        <span class="chip" onclick="fillMessage('What are standard PTO policies?')">PTO policies</span>
-        <span class="chip" onclick="fillMessage('How is workforce planning done?')">Workforce planning</span>
-        <span class="chip" onclick="fillMessage('What is the attrition rate by department?')">Attrition by dept (live data)</span>
-        <span class="chip" onclick="fillMessage('What is our current headcount?')">Current headcount (live data)</span>
+    <div class="cards">
+        <a class="card" href="/static/chat.html">
+            <div class="card-icon">💬</div>
+            <h2>Chat</h2>
+            <p>Ask HR and people analytics questions in plain language — policies, benefits, performance management, and live data lookups, with built-in safety and scope handling.</p>
+            <span class="cta">Start chatting →</span>
+        </a>
+
+        <a class="card" href="/static/dashboard.html">
+            <div class="card-icon">📊</div>
+            <h2>Dashboard</h2>
+            <p>Fixed KPI charts — headcount trend, attrition by department, hiring source, and attrition by manager — computed live from a real HR dataset, with filters.</p>
+            <span class="cta">View dashboard →</span>
+        </a>
+
+        <a class="card" href="/static/ask.html">
+            <div class="card-icon">🤖</div>
+            <h2>Ask AI</h2>
+            <p>Ask any free-text question about the dataset and get a live chart back — an AI agent writes and safely runs the SQL, then narrates the result.</p>
+            <span class="cta">Ask a question →</span>
+        </a>
+
+        <a class="card" href="/static/insights.html">
+            <div class="card-icon">📝</div>
+            <h2>Insights Memo</h2>
+            <p>Three synthesized findings — Finding, So What, Recommendation — the leadership-ready summary distinct from the interactive tools above.</p>
+            <span class="cta">Read the memo →</span>
+        </a>
     </div>
 
-    <!-- Chat window -->
-    <div class="chat-container">
-        <div id="chat-box">
-            <div class="welcome">
-                <strong>Welcome to the HR Advisor</strong>
-                Ask me about HR policies, employee benefits, people analytics, performance management, and more.
-            </div>
-        </div>
-    </div>
+    <p class="footer-note">Each tool links back here and to each other, so you can explore in any order.</p>
 
-    <!-- Input -->
-    <div class="input-area">
-        <input type="text" id="message" placeholder="Ask an HR or people analytics question..." />
-        <button id="send-btn" onclick="sendMessage()">Send</button>
-    </div>
-
-    <p class="disclaimer">For emergencies or legal issues, always consult a qualified HR professional or employment attorney.</p>
-
-    <script>
-        const input = document.getElementById("message");
-        const box = document.getElementById("chat-box");
-        const btn = document.getElementById("send-btn");
-
-        input.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") sendMessage();
-        });
-
-        function fillMessage(text) {
-            input.value = text;
-            input.focus();
-        }
-
-        function markdownToHtml(text) {
-            return text
-                // Standalone heading: entire line is **text** (no leading bullet)
-                .replace(/^\*\*(.+?)\*\*\s*$/gm, '<p><strong>$1</strong></p>')
-                // Bullet where content is ONLY bold (e.g. "* **Accrual Methods:**") → render as heading, no dot
-                .replace(/^\s*[\*\-]\s+\*\*(.+?)\*\*\s*$/gm, '<p><strong>$1</strong></p>')
-                // Bold inline within normal bullet lines
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                // Normal bullet points with content after the bold
-                .replace(/^\s*[\*\-]\s+(.+)/gm, '<li>$1</li>')
-                // Wrap consecutive <li> in <ul>
-                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-                // Line breaks
-                .replace(/\n{2,}/g, '<br><br>')
-                .replace(/\n/g, '<br>');
-        }
-
-        function appendMessage(role, text) {
-            const row = document.createElement("div");
-            row.className = `message-row ${role === "user" ? "user" : ""}`;
-
-            const avatar = document.createElement("div");
-            avatar.className = `avatar ${role === "user" ? "user-av" : "bot"}`;
-            avatar.textContent = role === "user" ? "🙋" : "👥";
-
-            const bubble = document.createElement("div");
-            bubble.className = `bubble ${role}`;
-            if (role === "bot") {
-                bubble.innerHTML = markdownToHtml(text);
-            } else {
-                bubble.textContent = text;
-            }
-
-            row.appendChild(avatar);
-            row.appendChild(bubble);
-            box.appendChild(row);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function showTyping() {
-            const row = document.createElement("div");
-            row.className = "message-row typing";
-            row.id = "typing-indicator";
-
-            const avatar = document.createElement("div");
-            avatar.className = "avatar bot";
-            avatar.textContent = "👥";
-
-            const bubble = document.createElement("div");
-            bubble.className = "bubble bot";
-            bubble.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
-
-            row.appendChild(avatar);
-            row.appendChild(bubble);
-            box.appendChild(row);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function hideTyping() {
-            const indicator = document.getElementById("typing-indicator");
-            if (indicator) indicator.remove();
-        }
-
-        async function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
-
-            appendMessage("user", text);
-            input.value = "";
-            btn.disabled = true;
-            showTyping();
-
-            try {
-                const res = await fetch("/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: text })
-                });
-                const data = await res.json();
-                hideTyping();
-                appendMessage("bot", data.response);
-            } catch (e) {
-                hideTyping();
-                const row = document.createElement("div");
-                row.className = "message-row";
-                const bubble = document.createElement("div");
-                bubble.className = "bubble error";
-                bubble.textContent = "Error connecting to the server. Please try again.";
-                row.appendChild(bubble);
-                box.appendChild(row);
-                box.scrollTop = box.scrollHeight;
-            }
-
-            btn.disabled = false;
-            input.focus();
-        }
-    </script>
 </body>
 </html>

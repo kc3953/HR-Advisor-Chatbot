@@ -275,7 +275,7 @@ async def chat_endpoint(request: Request, payload: ChatRequest):
 
 @app.get("/")
 async def root():
-    return {"message": "Chatbot API is running. Go to /static/index.html to chat."}
+    return {"message": "Chatbot API is running. Go to /static/index.html to get started."}
 
 
 # 5. Dashboard API — pure SQL against the HR dataset, no LLM calls (except

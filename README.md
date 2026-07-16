@@ -4,12 +4,13 @@
 
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
-[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Ask AI](https://hr-advisor-36222488155.us-central1.run.app/static/ask.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
+[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-36222488155.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Ask AI](https://hr-advisor-36222488155.us-central1.run.app/static/ask.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
 
 ## What It Does
 
 - Answers conceptual questions about HR policies, employee benefits, performance management, talent acquisition, workforce planning, and people analytics concepts
 - **Answers quantitative questions with real computed numbers**: a text-to-SQL agent generates and safely executes SQL against a real HR dataset (e.g. "What's the attrition rate by department?"), then narrates the result as an answer + insight + recommendation
+- **Landing page** (`/static/index.html`): a hub linking to all 4 tools below, each with a short description
 - **People Analytics Dashboard** (`/static/dashboard.html`): fixed KPI charts — headcount trend, attrition rate by department, hires by recruitment source, and attrition rate by manager (a self-join, see **Bugs I Found and Fixed** below) — with filters, computed live from the dataset
 - **Ask AI** (`/static/ask.html`): a standalone page where any free-text question generates its own chart (bar/line/pie, picked by the LLM) and narration; each question stays in a running history instead of replacing the last result
 - **Insights Memo** (`/static/insights.html`): three synthesized findings (Finding → So What → Recommendation), the "what I'd bring to a leadership review" artifact distinct from the interactive tools
@@ -70,7 +71,8 @@ domain-chatbot/
 │   ├── data/
 │   │   └── HRDataset_v14.csv
 │   └── static/
-│       ├── index.html     # Chat UI
+│       ├── index.html     # Landing page — hub linking to the 4 tools below
+│       ├── chat.html      # Chat UI
 │       ├── dashboard.html # Fixed KPI charts + filters (Chart.js)
 │       ├── ask.html       # Standalone ask-a-question -> chart history feed
 │       └── insights.html  # Synthesized findings memo (Finding / So What / Recommendation)

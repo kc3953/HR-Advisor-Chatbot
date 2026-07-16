@@ -6,6 +6,17 @@ A domain-specific chatbot that answers HR and people analytics questions, enforc
 
 [**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-36222488155.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Ask AI](https://hr-advisor-36222488155.us-central1.run.app/static/ask.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
 
+## What This Tool Is Intended to Solve
+
+People analytics data usually lives behind an analyst — a manager who wants "which team has the highest attrition?" or "are we paying equitably?" has to file a request or dig through a stale dashboard. This project is a self-serve layer on top of a real HR dataset:
+
+- **Chat** — answers policy/process questions directly, no analyst needed
+- **Dashboard** — surfaces the KPIs a people analytics manager checks routinely
+- **Ask AI** — handles one-off questions by generating SQL live, instead of requiring a pre-built chart
+- **Insights Memo** — synthesizes the numbers into findings someone could actually act on
+
+The goal is closing the gap between "we have the data" and "someone got an answer."
+
 ## What It Does
 
 - Answers conceptual questions about HR policies, employee benefits, performance management, talent acquisition, workforce planning, and people analytics concepts

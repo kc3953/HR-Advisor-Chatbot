@@ -66,6 +66,9 @@ Output ONLY a single JSON object wrapped in a ```json code fence, with exactly t
 
 Rules:
 - x_field and y_field MUST be exact key names taken from the given rows.
+- y_field MUST be a numeric column (a count, rate, average, sum, etc.) -- never a text/category column.
+- x_field and y_field MUST be different keys. If the rows only contain one numeric column and one
+  category column, x_field is the category and y_field is the number.
 - Use "line" only if x_field looks like a date or time period. Use "pie" only if there are 6 or fewer rows.
   Otherwise use "bar".
 - Do not include any text outside the JSON code fence.
@@ -198,7 +201,15 @@ def handle_dashboard_question(client, conn: sqlite3.Connection, question: str) -
         chart_type = chart.get("chart_type")
         x_field = chart.get("x_field")
         y_field = chart.get("y_field")
-        if chart_type not in ALLOWED_CHART_TYPES or x_field not in rows[0] or y_field not in rows[0]:
+        y_is_numeric = y_field in rows[0] and all(
+            isinstance(row[y_field], (int, float)) for row in rows
+        )
+        if (
+            chart_type not in ALLOWED_CHART_TYPES
+            or x_field not in rows[0]
+            or x_field == y_field
+            or not y_is_numeric
+        ):
             logger.info("Dashboard ask: invalid chart spec %r for question=%r", chart, question)
             return text_fallback
 

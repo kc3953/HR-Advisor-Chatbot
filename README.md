@@ -4,7 +4,7 @@
 
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
-[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-36222488155.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Ask AI](https://hr-advisor-36222488155.us-central1.run.app/static/ask.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
+[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-36222488155.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Chart Builder](https://hr-advisor-36222488155.us-central1.run.app/static/chart-builder.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
 
 ## What This Tool Is Intended to Solve
 
@@ -12,7 +12,7 @@ People analytics data usually lives behind an analyst — a manager who wants "w
 
 - **Chat** — answers policy/process questions directly, no analyst needed
 - **Dashboard** — surfaces the KPIs a people analytics manager checks routinely
-- **Ask AI** — handles one-off questions by generating SQL live, instead of requiring a pre-built chart
+- **Chart Builder** — handles one-off questions by generating SQL live, instead of requiring a pre-built chart
 - **Insights Memo** — synthesizes the numbers into findings someone could actually act on
 
 The goal is closing the gap between "we have the data" and "someone got an answer."
@@ -23,7 +23,7 @@ The goal is closing the gap between "we have the data" and "someone got an answe
 - **Answers quantitative questions with real computed numbers**: a text-to-SQL agent generates and safely executes SQL against a real HR dataset (e.g. "What's the attrition rate by department?"), then narrates the result as an answer + insight + recommendation
 - **Landing page** (`/static/index.html`): a hub linking to all 4 tools below, each with a short description
 - **People Analytics Dashboard** (`/static/dashboard.html`): fixed KPI charts — headcount trend, attrition rate by department, hires by recruitment source, and attrition rate by manager (a self-join, see **Bugs I Found and Fixed** below) — with filters, computed live from the dataset
-- **Ask AI** (`/static/ask.html`): a standalone page where any free-text question generates its own chart (bar/line/pie, picked by the LLM) and narration; each question stays in a running history instead of replacing the last result
+- **Chart Builder** (`/static/chart-builder.html`): a standalone page where any free-text question generates its own chart (bar/line/pie, picked by the LLM) and narration; each question stays in a running history instead of replacing the last result
 - **Insights Memo** (`/static/insights.html`): three synthesized findings (Finding → So What → Recommendation), the "what I'd bring to a leadership review" artifact distinct from the interactive tools
 - Refuses out-of-scope topics (technology/coding, lifestyle, financial/legal advice) with a clear explanation
 - Detects distressed users and immediately provides crisis resources (988, Crisis Text Line, EAP)
@@ -85,7 +85,7 @@ domain-chatbot/
 │       ├── index.html     # Landing page — hub linking to the 4 tools below
 │       ├── chat.html      # Chat UI
 │       ├── dashboard.html # Fixed KPI charts + filters (Chart.js)
-│       ├── ask.html       # Standalone ask-a-question -> chart history feed
+│       ├── chart-builder.html # Standalone ask-a-question -> chart history feed
 │       └── insights.html  # Synthesized findings memo (Finding / So What / Recommendation)
 ├── tests/                # Unit tests (pytest) — SQL safety, dataset loading, filters
 ├── eval.py              # Evaluation harness (deterministic + MaaJ)

@@ -4,7 +4,7 @@
 
 A domain-specific chatbot that answers HR and people analytics questions, enforces strict scope boundaries, and handles distressed users safely. Also includes a live text-to-SQL agent and a people analytics dashboard, both backed by a real HR dataset. Built with FastAPI + Gemini on Vertex AI, deployed on Google Cloud Run.
 
-[**Live URL Link**](https://hr-advisor-36222488155.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-36222488155.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-36222488155.us-central1.run.app/static/dashboard.html) &bull; [Chart Builder](https://hr-advisor-36222488155.us-central1.run.app/static/chart-builder.html) &bull; [Insights Memo](https://hr-advisor-36222488155.us-central1.run.app/static/insights.html)
+[**Live URL Link**](https://hr-advisor-669012265233.us-central1.run.app/static/index.html) &bull; [Chat](https://hr-advisor-669012265233.us-central1.run.app/static/chat.html) &bull; [Dashboard](https://hr-advisor-669012265233.us-central1.run.app/static/dashboard.html) &bull; [Chart Builder](https://hr-advisor-669012265233.us-central1.run.app/static/chart-builder.html) &bull; [Insights Memo](https://hr-advisor-669012265233.us-central1.run.app/static/insights.html)
 
 ## What This Tool Is Intended to Solve
 
@@ -168,7 +168,7 @@ uv run python eval.py
 
 ### Against deployed Cloud Run
 ```bash
-uv run python eval.py --url https://hr-advisor-36222488155.us-central1.run.app/chat
+uv run python eval.py --url https://hr-advisor-669012265233.us-central1.run.app/chat
 ```
 
 ---
